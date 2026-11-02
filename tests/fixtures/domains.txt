@@ -1,0 +1,9 @@
+# A plain domain
+ads.example.com
+# Hosts-file syntax
+0.0.0.0 tracker.example.net
+# Basic AdGuard syntax
+||metrics.example.org^
+# Ignored syntax
+@@||allowed.example.org^
+##.cosmetic-rule
