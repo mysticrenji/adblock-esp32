@@ -33,7 +33,9 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print('.'); }
   Serial.printf("\nIP: %s\n", WiFi.localIP().toString().c_str());
 
-  const bool started = dns.begin(parseIp(UPSTREAM_DNS_IP), parseIp(ALLOWED_CLIENT_IP), DNS_SERVICE_ENABLED == 1, &blocklist);
+  const size_t allowedClientCount = sizeof(ALLOWED_CLIENTS) / sizeof(ALLOWED_CLIENTS[0]);
+  const bool started = dns.begin(parseIp(UPSTREAM_DNS_IP), ALLOWED_CLIENTS, allowedClientCount,
+                                 DNS_SERVICE_ENABLED == 1, &blocklist);
   Serial.printf("DNS service: %s\n", started && DNS_SERVICE_ENABLED ? "test mode enabled" : "off or failed");
 }
 

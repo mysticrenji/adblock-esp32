@@ -19,7 +19,7 @@ architecture of [M-Abozaid/esp32-c3-adblock](https://github.com/M-Abozaid/esp32-
 | --- | --- |
 | Local blocklist compiler, UDP DNS relay, suffix blocking, LCD statistics | DHCP, captive portal, web UI, remote blocklist download, OTA firmware update |
 | One configured upstream IPv4 resolver | Automatic router/DHCP changes or network-wide DNS redirection |
-| One-client IPv4 allow-list | TLS, authentication, multi-client service |
+| Explicit IPv4 client allow-list | TLS, authentication, internet-facing service |
 
 The omissions are security choices for a first firmware build. A DNS appliance
 is highly privileged: it sees requests and can disrupt every client using it.
@@ -61,8 +61,8 @@ tested on the exact board revision.
   (not a charging-only cable), and a stable USB power source. Other LILYGO S3
   models may need different display wiring and configuration.
 - **Network:** a trusted **2.4 GHz Wi-Fi** network, its SSID/password, and one
-  test client with a reserved IPv4 address. Put that address in
-  `ALLOWED_CLIENT_IP` before enabling DNS.
+  or more test clients with reserved IPv4 addresses. Add those addresses to
+  `ALLOWED_CLIENTS` before enabling DNS.
 - **Local configuration:** copy `src/config.example.h` to `src/config.h`,
   enter Wi-Fi credentials, and leave DNS disabled for the first boot.
 - **Blocklist:** a reviewed, locally saved domain/hosts list. Generate
@@ -111,15 +111,15 @@ you do not need to create a new PlatformIO project.
 
 ## Safe DNS test procedure
 
-1. In `src/config.h`, set `ALLOWED_CLIENT_IP` to the fixed IPv4 address of one
-   spare test device. Reserve that address in the router first so it does not
-   change.
+1. In `src/config.h`, add the fixed IPv4 address of each spare test device to
+  `ALLOWED_CLIENTS`. Reserve each address in the router first so it does not
+  change.
 2. Set `DNS_SERVICE_ENABLED` to `1`; keep the upstream as a trusted resolver.
 3. Reflash firmware. Do not change router DHCP DNS, and do not point more than
    that test client at the device.
-4. On only the test client, set DNS to the ESP's IP. Check a benign allowed
-   domain resolves, then check a domain you knowingly placed in your local
-   list. Watch the LCD counters and serial output.
+4. On only the explicitly allowed test clients, set DNS to the ESP's IP. Check
+  a benign allowed domain resolves, then check a domain you knowingly placed
+  in your local list. Watch the LCD counters and serial output.
 5. Restore the test client's normal DNS immediately if forwarding, latency, or
    application behavior is unexpected. Reflash with `DNS_SERVICE_ENABLED 0` to
    stop listening completely.

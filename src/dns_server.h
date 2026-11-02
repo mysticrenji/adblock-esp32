@@ -15,7 +15,8 @@ struct DnsStats {
 
 class DnsServer {
  public:
-  bool begin(const IPAddress& upstream, const IPAddress& allowedClient, bool enabled, Blocklist* blocklist);
+  bool begin(const IPAddress& upstream, const IPAddress* allowedClients,
+             size_t allowedClientCount, bool enabled, Blocklist* blocklist);
   void loop();
   const DnsStats& stats() const { return stats_; }
   bool enabled() const { return enabled_; }
@@ -28,7 +29,8 @@ class DnsServer {
   WiFiUDP listener_;
   WiFiUDP upstreamSocket_;
   IPAddress upstream_;
-  IPAddress allowedClient_;
+  const IPAddress* allowedClients_ = nullptr;
+  size_t allowedClientCount_ = 0;
   Blocklist* blocklist_ = nullptr;
   bool enabled_ = false;
   DnsStats stats_;

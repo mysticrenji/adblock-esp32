@@ -1,9 +1,19 @@
-# A plain domain
-ads.example.com
+# A plain ad-tech domain
+adsrvr.org
 # Hosts-file syntax
-0.0.0.0 tracker.example.net
+0.0.0.0 doubleclick.net
 # Basic AdGuard syntax
-||metrics.example.org^
+||googlesyndication.com^
+# Additional ad-serving and tracking domains
+googleadservices.com
+adservice.google.com
+adnxs.com
+criteo.com
+taboola.com
+outbrain.com
+pubmatic.com
+openx.net
+rubiconproject.com
 # Ignored syntax
 @@||allowed.example.org^
 ##.cosmetic-rule

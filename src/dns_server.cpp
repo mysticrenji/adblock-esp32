@@ -9,9 +9,11 @@ void write16(uint8_t* p, uint16_t value) { p[0] = value >> 8; p[1] = value & 0xf
 void write32(uint8_t* p, uint32_t value) { p[0] = value >> 24; p[1] = value >> 16; p[2] = value >> 8; p[3] = value; }
 }  // namespace
 
-bool DnsServer::begin(const IPAddress& upstream, const IPAddress& allowedClient, bool enabled, Blocklist* blocklist) {
+bool DnsServer::begin(const IPAddress& upstream, const IPAddress* allowedClients,
+                      size_t allowedClientCount, bool enabled, Blocklist* blocklist) {
   upstream_ = upstream;
-  allowedClient_ = allowedClient;
+  allowedClients_ = allowedClients;
+  allowedClientCount_ = allowedClientCount;
   blocklist_ = blocklist;
   enabled_ = enabled;
   if (!enabled_) return true;
@@ -88,7 +90,12 @@ void DnsServer::loop() {
   if (length <= 0) return;
   uint8_t packet[kMaxDnsPacket];
   const size_t bytes = listener_.read(packet, min(length, int(sizeof(packet))));
-  if (listener_.remoteIP() != allowedClient_) { ++stats_.rejected; return; }
+  const IPAddress client = listener_.remoteIP();
+  bool allowed = false;
+  for (size_t i = 0; i < allowedClientCount_; ++i) {
+    if (client == allowedClients_[i]) { allowed = true; break; }
+  }
+  if (!allowed) { ++stats_.rejected; return; }
   String domain;
   size_t questionEnd = 0;
   uint16_t type = 0;
