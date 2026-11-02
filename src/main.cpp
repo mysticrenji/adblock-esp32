@@ -6,11 +6,21 @@
 #include "blocklist.h"
 #include "display.h"
 #include "dns_server.h"
+#include "web_portal.h"
+
+// Preserve compatibility with existing private config.h files.
+#ifndef WEB_PORTAL_USERNAME
+#define WEB_PORTAL_USERNAME "admin"
+#endif
+#ifndef WEB_PORTAL_PASSWORD
+#define WEB_PORTAL_PASSWORD ""
+#endif
 
 namespace {
 Blocklist blocklist;
 DnsServer dns;
 Dashboard dashboard;
+WebPortal portal;
 
 IPAddress parseIp(const char* value) {
   IPAddress result;
@@ -37,9 +47,11 @@ void setup() {
   const bool started = dns.begin(parseIp(UPSTREAM_DNS_IP), ALLOWED_CLIENTS, allowedClientCount,
                                  DNS_SERVICE_ENABLED == 1, &blocklist);
   Serial.printf("DNS service: %s\n", started && DNS_SERVICE_ENABLED ? "test mode enabled" : "off or failed");
+  portal.begin(dns, blocklist, WEB_PORTAL_USERNAME, WEB_PORTAL_PASSWORD);
 }
 
 void loop() {
   dns.loop();
+  portal.loop();
   dashboard.update(dns, blocklist.ready(), blocklist.entries());
 }

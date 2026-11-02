@@ -15,10 +15,11 @@ bool DnsServer::begin(const IPAddress& upstream, const IPAddress* allowedClients
   allowedClients_ = allowedClients;
   allowedClientCount_ = allowedClientCount;
   blocklist_ = blocklist;
-  enabled_ = enabled;
-  if (!enabled_) return true;
+  enabled_ = false;
+  if (!enabled) return true;
   upstreamSocket_.begin(0);
-  return listener_.begin(kDnsPort) == 1;
+  enabled_ = listener_.begin(kDnsPort) == 1;
+  return enabled_;
 }
 
 bool DnsServer::parseQuestion(const uint8_t* packet, size_t length, String* name, size_t* questionEnd, uint16_t* type) const {
