@@ -7,19 +7,19 @@ relays non-blocklisted requests to one configured upstream resolver.
 This is a small, intentionally conservative port inspired by the documented
 architecture of [M-Abozaid/esp32-c3-adblock](https://github.com/M-Abozaid/esp32-c3-adblock): domains are encoded as sorted 40-bit FNV-1a hashes in LittleFS, so lookup needs little RAM. It is an independent implementation; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
-> **Status: compile-ready configuration; hardware unverified.** The original
+> **Status: firmware build verified; portal hardware validation pending.** The original
 > upstream tested an ESP32-C3, not this board. This project has not yet been
 > flashed to a physical T-Display S3, so the LCD pin offsets, buttons, radio,
-> and DNS behavior require on-device validation. PlatformIO was unavailable in
-> the authoring environment, so a local compile was not run either.
+> and DNS behavior require on-device validation. The authenticated portal builds
+> successfully with the installed PlatformIO ESP32 toolchain.
 
 ## What it does / deliberately does not do
 
 | Included | Intentionally absent |
 | --- | --- |
-| Local blocklist compiler, UDP DNS relay, suffix blocking, LCD statistics | DHCP, captive portal, web UI, remote blocklist download, OTA firmware update |
+| Local blocklist compiler, UDP DNS relay, suffix blocking, LCD statistics, authenticated web dashboard | DHCP, captive portal, remote blocklist download, OTA firmware update |
 | One configured upstream IPv4 resolver | Automatic router/DHCP changes or network-wide DNS redirection |
-| Explicit IPv4 client allow-list | TLS, authentication, internet-facing service |
+| Explicit IPv4 DNS client allow-list, HTTP Digest portal login | TLS, internet-facing service |
 
 The omissions are security choices for a first firmware build. A DNS appliance
 is highly privileged: it sees requests and can disrupt every client using it.
@@ -30,6 +30,14 @@ The screen shows connection state, ESP IP, blocklist status, DNS safety state,
 and counters. Press **BOOT** briefly to switch between the overview and stats
 page. The auxiliary button is reserved and currently has no effect. Holding
 BOOT while reset may still enter the ROM bootloader, as expected.
+
+LCD updates are composed in an off-screen frame buffer before being transferred
+to the panel. This avoids the visible clear-and-redraw flicker at each 500 ms
+refresh. The buffer uses about 106 KiB at 16-bit color, with an 8-bit fallback
+(about 53 KiB) if that allocation fails. If neither fits, the LCD and serial
+monitor report a buffer allocation error; DNS and the web portal continue.
+After uploading firmware, check both LCD pages for stable refreshes and verify
+that DNS counters still update while the web portal is open.
 
 The code assumes common T-Display S3 wiring (ST7789: SCLK 18, MOSI 17, CS 39,
 DC 38, RST 37, backlight 48; buttons 0 and 14). Treat this as unverified until
@@ -107,7 +115,74 @@ you do not need to create a new PlatformIO project.
    ```
 
 4. Verify the LCD has joined Wi-Fi and note its IP. **Do not enable the DNS
-   server yet.** At this point it only displays status.
+   server yet.** The LCD and web portal display status while DNS is disabled.
+
+## Authenticated web portal
+
+After flashing the firmware, open **`http://<device-ip>/`** from a browser on
+the same LAN. The browser prompts for a username and password using HTTP
+Digest authentication. The default username is **`admin`**. With an empty or
+unspecified password, firmware generates a random 32-character password and
+prints it to the **USB serial monitor at 115200 baud** during boot. Open the
+monitor and restart the device if you missed it; the password changes each boot.
+
+For a persistent login, add these settings to your untracked `src/config.h`
+and rebuild/reflash firmware:
+
+```cpp
+#define WEB_PORTAL_USERNAME "admin"
+#define WEB_PORTAL_PASSWORD "your-own-long-unique-password"
+```
+
+Existing private configuration files work without modification. No shared
+default password is used. The page is embedded in firmware, so a filesystem
+upload is not needed for portal changes. The portal starts after Wi-Fi connects,
+even when DNS is disabled. It shows DNS counters, the latest queried domain,
+blocklist health and entry count, IP, signal strength, uptime, and free memory.
+It refreshes every five seconds; the current DNS relay can delay responses by
+up to 1.5 seconds while waiting for upstream DNS. There are no settings controls.
+
+Both the dashboard and `/api/status` require authentication, and responses are
+marked `no-store`. DNS names are rendered as text. Browsers cache Digest logins;
+close the browser session (all private windows if using private browsing) to
+clear credentials. There is no server-side logout or session expiry.
+
+Use this on a trusted LAN only: Digest avoids sending the plaintext password,
+but **HTTP does not encrypt the dashboard or DNS query information**. Do not
+port-forward TCP/80. Portal login is independent of the DNS client allow-list.
+
+After flashing, run the integration check from a machine on that LAN:
+
+```sh
+python3 tools/check_portal.py http://<device-ip> --username admin
+```
+
+It prompts for the password and checks anonymous/wrong-password rejection,
+Digest-only login, authenticated HTML/JSON, and unavailable write routes. Also
+check the dashboard on a phone and desktop, send test DNS queries while it is
+open, and verify counters and recovery after a Wi-Fi interruption.
+
+### One-command clean build and upload
+
+From the project folder, generate the blocklist from a reviewed domain/hosts
+text file, clean, build both images, and upload firmware followed by LittleFS:
+
+```sh
+python3 tools/flash.py path/to/reviewed-domains.txt --port /dev/ttyACM0
+```
+
+Omit `--port` to let PlatformIO detect the board. Multiple text files can be
+passed together. To use an already compiled binary such as `domain.bin`:
+
+```sh
+python3 tools/flash.py --blocklist path/to/domain.bin --port /dev/ttyACM0
+```
+
+The binary must use this project's sorted five-byte hash format. The script
+copies it to `data/blocklist.bin`, the filename the firmware reads. Running
+without list arguments reuses `data/blocklist.bin`. Add `--build-only` to build
+and check both images without flashing. A failed step stops the script.
+Uploading the filesystem replaces its existing contents.
 
 ## Safe DNS test procedure
 

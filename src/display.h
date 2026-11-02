@@ -19,6 +19,8 @@ class Dashboard {
   void update(const DnsServer& dns, bool blocklistReady, size_t entries);
  private:
   TDisplayS3 lcd_;
+  lgfx::LGFX_Sprite frame_{&lcd_};
+  bool frameReady_ = false;
   uint8_t page_ = 0;
   uint32_t lastDraw_ = 0;
   bool lastButton_ = true;

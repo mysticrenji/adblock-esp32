@@ -4,6 +4,12 @@
 #define WIFI_SSID "CHANGE_ME"
 #define WIFI_PASSWORD "CHANGE_ME"
 
+// Web portal at http://<device-ip>/. Use a unique, long password.
+// Empty password generates a random temporary password printed over USB serial
+// at every boot. Existing config.h files also use this safe default.
+#define WEB_PORTAL_USERNAME "admin"
+#define WEB_PORTAL_PASSWORD ""
+
 // Safety default: 0 means the firmware never opens UDP/53. Change to 1 only
 // after authorized test devices are configured to use this ESP's IP as DNS.
 #define DNS_SERVICE_ENABLED 0
